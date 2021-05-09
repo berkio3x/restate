@@ -34,7 +34,6 @@ class State:
         self._on_exit = func
         
         
-        
 class Transition:
     def __init__(self, name, _machine, start=None, target=None):
         self.name = name
@@ -58,14 +57,29 @@ class Transition:
             if not ok:
                 raise Exception(f'Cannot change state to {self.name} from {self.machine.active_state}')
             
+            
+            # execute on_exit for current state , if any.
+            current_state = self.machine.states[self.machine.active_state]
+            next_state = self.machine.states[self.target]
+            
+            try:
+                current_state.on_exit()
+            except (AttributeError, TypeError):
+                pass 
+            
             self.machine.active_state = self.target
 
+            try:
+                next_state.on_entry()
+            except (AttributeError, TypeError):
+                pass
+            
 
 class Machine(object):
     
     def __init__(self, initial_sate, states: List[str]):
         self.initial_state = initial_sate
-        self.states = []
+        self.states = {}
         self.add_states(states)
         self.transitions = {}
         self.active_state = initial_sate
@@ -76,14 +90,14 @@ class Machine(object):
     
     @property
     def state_names(self):
-        return [state.name for state in self.states]
+        return self.states.keys()
     
     def add_states(self, states):
         for state in states:
             if isinstance(state, State):
-                self.states.append(state)
+                self.states[state.name] = state
             else:
-                self.states.append(State(name=state))
+                self.states[state] = State(name=state)
                 
     def __getattr__(self, transition):
         transition_obj = self.transitions[transition]
@@ -101,7 +115,8 @@ class Machine(object):
         
         
 if __name__ == "__main__":
-    turnstile = Machine('locked', states=['locked', 'unlocked'])
+    unlocked_state = State(name='unlocked', on_entry=lambda: print('entring unlocked state..') , on_exit=lambda:print('exiting unlocked state..'))
+    turnstile = Machine('locked', states=['locked', unlocked_state])
     turnstile.add_transition(name='lock', start='unlocked', target='locked')
     turnstile.add_transition(name='unlock', start='locked', target='unlocked')
     
