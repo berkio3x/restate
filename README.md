@@ -16,6 +16,8 @@ A state machine library
 
 example:
 ```python
+    from restate import State, Machine
+
     # Create a state object
     unlocked_state = State(name='unlocked', 
                         on_entry=lambda: print('entring unlocked state..') ,
